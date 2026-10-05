@@ -1,4 +1,10 @@
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
 import { router } from "expo-router";
 import { ChevronRight, Package } from "lucide-react-native";
 import { colors, radii } from "@/constants/theme";
@@ -18,8 +24,20 @@ export default function OrdersScreen() {
   const orders = useOrders(userId);
   const header = <ScreenHeader eyebrow="Account" title="Your orders" />;
 
-  if (orders.isPending) return <View style={{ flex: 1 }}>{header}<LoadingView label="Loading your orders…" /></View>;
-  if (orders.isError && !orders.data) return <View style={{ flex: 1 }}>{header}<ErrorView error={orders.error} onRetry={() => orders.refetch()} /></View>;
+  if (orders.isPending)
+    return (
+      <View style={{ flex: 1 }}>
+        {header}
+        <LoadingView label="Loading your orders…" />
+      </View>
+    );
+  if (orders.isError && !orders.data)
+    return (
+      <View style={{ flex: 1 }}>
+        {header}
+        <ErrorView error={orders.error} onRetry={() => orders.refetch()} />
+      </View>
+    );
 
   return (
     <View style={{ flex: 1 }}>
@@ -28,19 +46,34 @@ export default function OrdersScreen() {
         data={orders.data}
         keyExtractor={(o) => o.id}
         contentContainerStyle={{ padding: 20, gap: 12 }}
-        refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => orders.refetch()} tintColor={colors.terracotta} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={orders.isRefetching}
+            onRefresh={() => orders.refetch()}
+            tintColor={colors.terracotta}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             icon={<Package size={40} color={colors.terracotta} />}
             title="No orders yet"
             description="When you place an order on the app or the website it will appear here."
-            action={<Button size="lg" onPress={() => router.navigate("/shop")}>Start shopping</Button>}
+            action={
+              <Button size="lg" onPress={() => router.navigate("/shop")}>
+                Start shopping
+              </Button>
+            }
           />
         }
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => router.push({ pathname: "/order/[id]", params: { id: item.id } })}
-            style={({ pressed }) => [styles.card, pressed && { borderColor: colors.charcoal }]}
+            onPress={() =>
+              router.push({ pathname: "/order/[id]", params: { id: item.id } })
+            }
+            style={({ pressed }) => [
+              styles.card,
+              pressed && { borderColor: colors.charcoal },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={`Order ${item.orderNumber}`}
           >
@@ -50,7 +83,8 @@ export default function OrdersScreen() {
                 <OrderStatusBadge status={item.status} />
               </View>
               <AppText variant="small">
-                {formatDate(item.createdAt)} · {item.itemCount} {item.itemCount === 1 ? "item" : "items"}
+                {formatDate(item.createdAt)} · {item.itemCount}{" "}
+                {item.itemCount === 1 ? "item" : "items"}
               </AppText>
               <AppText variant="price">{formatNaira(item.total)}</AppText>
             </View>
@@ -63,6 +97,20 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.stone, borderRadius: radii.lg, backgroundColor: colors.white, padding: 16 },
-  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.stone,
+    borderRadius: radii.lg,
+    backgroundColor: colors.white,
+    padding: 16,
+  },
+  top: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
 });

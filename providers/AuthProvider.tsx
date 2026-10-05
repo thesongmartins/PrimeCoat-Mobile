@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -10,7 +17,11 @@ interface AuthState {
   initializing: boolean;
 }
 
-const AuthContext = createContext<AuthState>({ session: null, user: null, initializing: true });
+const AuthContext = createContext<AuthState>({
+  session: null,
+  user: null,
+  initializing: true,
+});
 
 /**
  * Holds the Supabase session (a client credential, not server data). When the signed-in user
@@ -18,7 +29,11 @@ const AuthContext = createContext<AuthState>({ session: null, user: null, initia
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<AuthState>({ session: null, user: null, initializing: true });
+  const [state, setState] = useState<AuthState>({
+    session: null,
+    user: null,
+    initializing: true,
+  });
   const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     supabase.auth.getSession().then(({ data }) => apply(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => apply(session));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) =>
+      apply(session),
+    );
     return () => data.subscription.unsubscribe();
   }, [queryClient]);
 

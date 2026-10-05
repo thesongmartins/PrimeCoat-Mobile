@@ -39,14 +39,22 @@ export function useCartRealtime(userId: string | null) {
     const scheduleRefetch = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        if (queryClient.isMutating({ mutationKey: CART_MUTATION_KEY }) > 0) return;
+        if (queryClient.isMutating({ mutationKey: CART_MUTATION_KEY }) > 0)
+          return;
         void queryClient.invalidateQueries({ queryKey: key });
       }, 200);
     };
 
-    const onChange = (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-      const event = { eventType: payload.eventType, new: payload.new as Record<string, unknown>, old: payload.old as Record<string, unknown> };
-      if (isOwnCartEvent(event, userId, queryClient.getQueryData<Cart>(key))) scheduleRefetch();
+    const onChange = (
+      payload: RealtimePostgresChangesPayload<Record<string, unknown>>,
+    ) => {
+      const event = {
+        eventType: payload.eventType,
+        new: payload.new as Record<string, unknown>,
+        old: payload.old as Record<string, unknown>,
+      };
+      if (isOwnCartEvent(event, userId, queryClient.getQueryData<Cart>(key)))
+        scheduleRefetch();
     };
 
     let cancelled = false;
@@ -61,8 +69,21 @@ export function useCartRealtime(userId: string | null) {
       if (cancelled) return;
       channel = supabase
         .channel(`cart:${userId}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "cart_items", filter: `user_id=eq.${userId}` }, onChange)
-        .on("postgres_changes", { event: "DELETE", schema: "public", table: "cart_items" }, onChange)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "cart_items",
+            filter: `user_id=eq.${userId}`,
+          },
+          onChange,
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "cart_items" },
+          onChange,
+        )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
             setStatus("live");
