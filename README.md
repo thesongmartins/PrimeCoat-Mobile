@@ -2,7 +2,7 @@
 
 The Android/iOS app for PrimeCoat. It uses the **same** Supabase project, Google sign-in, products, cart, orders and order API as the web shop at https://primecoatt.vercel.app. It has no backend of its own. The web app lives in a separate folder/repo, `../PrimeCoat`.
 
-Expo SDK 57 · React Native 0.86 · Expo Router · TypeScript · Supabase · TanStack Query v5 · Supabase Realtime · Zustand (UI state only).
+Expo SDK 57 · React Native 0.86 · Expo Router · TypeScript · Supabase · TanStack Query v5 · Supabase Realtime.
 
 ---
 
@@ -28,7 +28,6 @@ Expo SDK 57 · React Native 0.86 · Expo Router · TypeScript · Supabase · Tan
 |---|---|
 | Products, cart, orders, profile | Supabase, cached by **TanStack Query** (`queries/`, `mutations/`) |
 | Session | Supabase Auth, persisted in the device keychain (`lib/secure-storage.ts`) |
-| Realtime connection status ("Live" dot) | **Zustand** (`stores/sync.ts`) — the only Zustand store |
 | Form input, search text, selected chip | Component state / route params |
 
 ### Folders
@@ -43,7 +42,6 @@ lib/            supabase client, env, query keys, auth helpers, pure cart maths,
 mutations/      cart (optimistic), checkout, auth
 providers/      QueryProvider (QueryClient config), AuthProvider (session)
 queries/        products, cart, orders, profile
-stores/         sync.ts (Zustand, UI only)
 types/          app types (camelCase), mirrors /types on the web
 tests/          node:test unit tests for pure logic
 ```

@@ -40,7 +40,8 @@ const ORDER_TONES: Record<OrderStatus, Tone> = {
   cancelled: "danger",
 };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+export function OrderStatusBadge({ status, awaitingPayment = false }: { status: OrderStatus; awaitingPayment?: boolean }) {
+  if (awaitingPayment && status !== "cancelled") return <Badge tone="warning" label="Awaiting payment" />;
   return <Badge tone={ORDER_TONES[status]} label={ORDER_STATUS_LABELS[status]} />;
 }
 

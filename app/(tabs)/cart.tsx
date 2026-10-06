@@ -8,7 +8,6 @@ import { useCart } from "@/queries/cart";
 import { useClearCart, useRemoveFromCart, useSetCartQuantity, useSetDeliveryState } from "@/mutations/cart";
 import { toUserMessage } from "@/lib/errors";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { SyncIndicator } from "@/components/SyncIndicator";
 import { CartLineRow } from "@/components/CartLineRow";
 import { CartSummary } from "@/components/CartSummary";
 import { StatePicker } from "@/components/StatePicker";
@@ -28,7 +27,7 @@ export default function CartScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const onError = (e: unknown) => setError(toUserMessage(e, "We couldn't update your cart. Your previous cart has been restored."));
-  const header = <ScreenHeader eyebrow="Your cart" title="Cart" right={<SyncIndicator />} />;
+  const header = <ScreenHeader eyebrow="Your cart" title="Cart" />;
 
   if (cart.isPending) return <View style={{ flex: 1 }}>{header}<LoadingView label="Loading your cart…" /></View>;
   if (cart.isError && !cart.data) return <View style={{ flex: 1 }}>{header}<ErrorView error={cart.error} onRetry={() => cart.refetch()} /></View>;
@@ -89,7 +88,7 @@ export default function CartScreen() {
                 Clear cart
               </Button>
               <AppText variant="small" style={{ textAlign: "center" }}>
-                Changes here appear instantly on primecoatt.vercel.app when you're signed in to the same account.
+                Changes here appear instantly on primecoatt.vercel.app when you’re signed in to the same account.
               </AppText>
             </View>
           ) : null

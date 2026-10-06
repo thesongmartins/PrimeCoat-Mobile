@@ -1,7 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import * as WebBrowser from "expo-web-browser";
+import type { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { completeOAuthFromUrl, oauthRedirectUrl } from "@/lib/auth";
+import type { SignUpInput } from "@/lib/auth-schema";
 import { AppError } from "@/lib/errors";
 
 export function useGoogleSignIn() {
@@ -9,6 +11,13 @@ export function useGoogleSignIn() {
     mutationKey: ["auth", "google"],
     mutationFn: async () => {
       const redirectTo = oauthRedirectUrl();
+      // Expo Go can only return to exp://<host>:<port>, which Supabase doesn't allow, so Google
+      // would finish on the website. Say so instead of leaving the user stranded there.
+      if (redirectTo.startsWith("exp://"))
+        throw new AppError(
+          "Google sign-in doesn't work in Expo Go. Open the PrimeCoat app instead, or sign in with email.",
+          "EXPO_GO",
+        );
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -74,6 +83,97 @@ export function useEmailSignIn() {
       );
     },
   });
+}
+
+export type SignUpResult =
+  | { status: "signed_in" }
+  | { status: "check_email"; email: string };
+
+/**
+ * Email sign-up, same as signUpWithPassword() on the web. The confirmation link returns to
+ * primecoat://auth/callback, where app/auth/callback exchanges its code for a session.
+ */
+export function useEmailSignUp() {
+  return useMutation({
+    mutationKey: ["auth", "signUp"],
+    mutationFn: async (input: SignUpInput): Promise<SignUpResult> => {
+      const { data, error } = await supabase.auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: {
+          data: { full_name: input.fullName },
+          emailRedirectTo: oauthRedirectUrl(),
+        },
+      });
+      if (error) throw signUpError(error);
+      // Confirmation disabled in Supabase: already signed in, and the auth gate shows the tabs.
+      if (data.session) return { status: "signed_in" };
+      // Confirmation enabled (or the email is already registered — Supabase hides which).
+      return { status: "check_email", email: input.email };
+    },
+  });
+}
+
+export function useResendConfirmation() {
+  return useMutation({
+    mutationKey: ["auth", "resend"],
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: oauthRedirectUrl() },
+      });
+      if (error?.status === 429)
+        throw new AppError(
+          "Please wait a minute before requesting another email.",
+          "RATE_LIMITED",
+          429,
+        );
+      if (error)
+        throw new AppError(
+          "We couldn't resend the email. Please try again.",
+          "UNKNOWN",
+        );
+    },
+  });
+}
+
+function signUpError(error: AuthError): AppError {
+  if (error.code === "user_already_exists")
+    return new AppError(
+      "An account with this email already exists. Sign in instead.",
+      "USER_EXISTS",
+    );
+  if (error.code === "weak_password")
+    return new AppError("Choose a stronger password.", "WEAK_PASSWORD");
+  if (error.code === "email_address_invalid")
+    return new AppError(
+      "That email address can't receive mail. Please use a real address.",
+      "EMAIL_INVALID",
+    );
+  if (
+    error.code === "email_address_not_authorized" ||
+    /sending .*email/i.test(error.message)
+  )
+    return new AppError(
+      "We couldn't send your confirmation email. Please try again later or continue with Google.",
+      "EMAIL_NOT_SENT",
+    );
+  if (error.status === 429)
+    return new AppError(
+      "Too many sign-up attempts. Please wait a few minutes.",
+      "RATE_LIMITED",
+      429,
+    );
+  if (/network|fetch/i.test(error.message))
+    return new AppError(
+      "You appear to be offline. Check your connection and try again.",
+      "NETWORK",
+    );
+  return new AppError(
+    "We couldn't create your account right now. Please try again.",
+    "UNKNOWN",
+  );
 }
 
 export function useSignOut() {

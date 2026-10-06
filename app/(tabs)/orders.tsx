@@ -11,6 +11,7 @@ import { colors, radii } from "@/constants/theme";
 import { useUserId } from "@/providers/AuthProvider";
 import { useOrders } from "@/queries/orders";
 import { formatDate, formatNaira } from "@/lib/format";
+import { isAwaitingPayment } from "@/types/order";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { AppText } from "@/components/ui/AppText";
 import { OrderStatusBadge } from "@/components/ui/Badge";
@@ -80,7 +81,7 @@ export default function OrdersScreen() {
             <View style={{ flex: 1, gap: 6 }}>
               <View style={styles.top}>
                 <AppText variant="bodyMedium">{item.orderNumber}</AppText>
-                <OrderStatusBadge status={item.status} />
+                <OrderStatusBadge status={item.status} awaitingPayment={isAwaitingPayment(item)} />
               </View>
               <AppText variant="small">
                 {formatDate(item.createdAt)} · {item.itemCount}{" "}

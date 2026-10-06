@@ -1,10 +1,10 @@
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { CART_MUTATION_KEY, queryKeys } from "@/lib/query-keys";
 import { isOwnCartEvent } from "@/lib/cart-realtime";
-import { useSyncStore } from "@/stores/sync";
 import type { Cart } from "@/types/cart";
 
 /**
@@ -21,16 +21,14 @@ import type { Cart } from "@/types/cart";
  * - While a local cart write is pending its own onSettled refetches, so events are not applied
  *   on top of optimistic state (no flicker, no loops: refetching never writes).
  * - After a dropped connection the cart is refetched once, to catch anything missed.
+ * - Returning to the foreground refetches too: Android pauses the socket in the background, so an
+ *   order placed on the web meanwhile would otherwise stay invisible until the cache went stale.
  */
 export function useCartRealtime(userId: string | null) {
   const queryClient = useQueryClient();
-  const setStatus = useSyncStore((s) => s.setRealtime);
 
   useEffect(() => {
-    if (!userId) {
-      setStatus("idle");
-      return;
-    }
+    if (!userId) return;
 
     const key = queryKeys.cart(userId);
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -60,7 +58,15 @@ export function useCartRealtime(userId: string | null) {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    setStatus("connecting");
+    let wasBackground = false;
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state === "background") wasBackground = true;
+      else if (state === "active" && wasBackground) {
+        wasBackground = false;
+        scheduleRefetch();
+      }
+    });
+
     // A session restored from the keychain never fires SIGNED_IN, so supabase-js would join with the
     // anon key and RLS would drop every event. Give Realtime the user's JWT before subscribing.
     void supabase.auth.getSession().then(async ({ data }) => {
@@ -86,16 +92,12 @@ export function useCartRealtime(userId: string | null) {
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            setStatus("live");
             if (missedEvents) {
               missedEvents = false;
               scheduleRefetch();
             }
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
             missedEvents = true;
-            setStatus("reconnecting");
-          } else if (status === "CLOSED") {
-            setStatus("idle");
           }
         });
     });
@@ -103,8 +105,8 @@ export function useCartRealtime(userId: string | null) {
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      appState.remove();
       if (channel) void supabase.removeChannel(channel);
-      setStatus("idle");
     };
-  }, [userId, queryClient, setStatus]);
+  }, [userId, queryClient]);
 }

@@ -9,16 +9,17 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // import { Lock } from "lucide-react-native";
-import { colors } from "@/constants/theme";
 import { useAuth, useUserId } from "@/providers/AuthProvider";
 import { useCart } from "@/queries/cart";
 import { useProfile } from "@/queries/profile";
 import { usePlaceOrder } from "@/mutations/checkout";
+import { showPaymentResult, usePaystackCheckout } from "@/mutations/payments";
 import { checkoutSchema, type CheckoutInput } from "@/lib/checkout-schema";
 import { toUserMessage } from "@/lib/errors";
 import { useOnline } from "@/hooks/useOnline";
 import { CartSummary } from "@/components/CartSummary";
 import { StatePicker } from "@/components/StatePicker";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { AppText } from "@/components/ui/AppText";
 import { Button } from "@/components/ui/Button";
@@ -40,6 +41,8 @@ export default function CheckoutScreen() {
   const cart = useCart(userId);
   const profile = useProfile(userId);
   const placeOrder = usePlaceOrder();
+  const openPaystack = usePaystackCheckout();
+  const [paying, setPaying] = useState(false);
 
   // Form input is local UI state; defaults come from server data the first time they're needed.
   const [form, setForm] = useState<Partial<CheckoutInput>>({});
@@ -62,7 +65,10 @@ export default function CheckoutScreen() {
     city: form.city ?? "",
     state: (form.state ?? cart.data.deliveryState) as CheckoutInput["state"],
     deliveryInstructions: form.deliveryInstructions ?? "",
+    // Card first, as on the web. If the server has no Paystack key it says so and nothing is created.
+    paymentMethod: form.paymentMethod ?? "card",
   };
+  const isCard = values.paymentMethod === "card";
   const set = (field: Field) => (text: string) => {
     setForm((f) => ({ ...f, [field]: text }));
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
@@ -97,11 +103,22 @@ export default function CheckoutScreen() {
       return;
     }
     placeOrder.mutate(parsed.data, {
-      onSuccess: (res) =>
+      onSuccess: async (res) => {
+        if (res.paymentUrl) {
+          // The order exists (cart emptied); now pay for it on Paystack.
+          setPaying(true);
+          await openPaystack(res.orderId, res.paymentUrl);
+          return;
+        }
+        if (res.paymentError) {
+          showPaymentResult({ orderId: res.orderId, status: "failed" });
+          return;
+        }
         router.replace({
           pathname: "/order/[id]",
           params: { id: res.orderId, placed: "1", email: res.emailStatus },
-        }),
+        });
+      },
     });
   };
 
@@ -121,7 +138,7 @@ export default function CheckoutScreen() {
       >
         <AppText variant="eyebrow">Delivery details</AppText>
         <AppText variant="body" style={{ marginTop: 6 }}>
-          We deliver across Nigeria. You pay when your order arrives.
+          We deliver across Nigeria.
         </AppText>
 
         <View style={styles.fields}>
@@ -184,14 +201,12 @@ export default function CheckoutScreen() {
           <CartSummary lines={lines} deliveryState={values.state} final />
         </View>
 
-        <View style={styles.payment}>
+        <View style={{ marginTop: 24, gap: 12 }}>
           <AppText variant="label">Payment</AppText>
-          <AppText variant="bodyMedium" style={{ marginTop: 6 }}>
-            Pay on Delivery
-          </AppText>
-          <AppText variant="small" style={{ marginTop: 2 }}>
-            Cash or transfer when your paint arrives.
-          </AppText>
+          <PaymentMethodPicker
+            value={values.paymentMethod}
+            onChange={(paymentMethod) => setForm((f) => ({ ...f, paymentMethod }))}
+          />
         </View>
 
         {placeOrder.isError ? (
@@ -203,12 +218,18 @@ export default function CheckoutScreen() {
         <Button
           size="lg"
           onPress={submit}
-          loading={placeOrder.isPending}
+          loading={placeOrder.isPending || paying}
           disabled={!online || placeOrder.isPending || placeOrder.isSuccess}
           style={{ marginTop: 20 }}
           // icon={placeOrder.isPending}
         >
-          {placeOrder.isPending ? "Placing order…" : "Place Order"}
+          {paying
+            ? "Opening secure payment…"
+            : placeOrder.isPending
+              ? "Placing order…"
+              : isCard
+                ? "Continue to payment"
+                : "Place Order"}
         </Button>
         {!online ? (
           <AppText
@@ -219,7 +240,9 @@ export default function CheckoutScreen() {
           </AppText>
         ) : null}
         <AppText variant="small" style={{ marginTop: 12, textAlign: "center" }}>
-          Prices and stock are confirmed by PrimeCoat when you place the order.
+          {isCard
+            ? "You’ll pay securely on Paystack. Your confirmation email is sent once payment is confirmed."
+            : "Prices and stock are confirmed by PrimeCoat when you place the order."}
         </AppText>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -229,12 +252,4 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
   wrap: { padding: 20 },
   fields: { marginTop: 18, gap: 16 },
-  payment: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: colors.stone,
-    borderRadius: 8,
-    backgroundColor: colors.white,
-    padding: 16,
-  },
 });

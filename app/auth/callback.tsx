@@ -29,7 +29,7 @@ export default function AuthCallback() {
   if (!error) return <LoadingView label="Signing you in…" />;
   return (
     <View style={styles.wrap}>
-      <AppText variant="heading" style={{ textAlign: "center" }}>Sign-in didn't complete</AppText>
+      <AppText variant="heading" style={{ textAlign: "center" }}>Sign-in didn’t complete</AppText>
       <AppText variant="body" style={styles.msg}>{error}</AppText>
       <Button onPress={() => router.replace("/login")} style={{ marginTop: 20 }}>Back to sign in</Button>
     </View>

@@ -20,6 +20,7 @@ export const checkoutSchema = z.object({
   city: z.string().trim().min(2, "Enter your city or town").max(100),
   state: z.enum(NIGERIA_STATES, { message: "Select your state" }),
   deliveryInstructions: z.string().trim().max(500, "Keep instructions under 500 characters").optional().or(z.literal("")),
+  paymentMethod: z.enum(["pay_on_delivery", "card"]).default("pay_on_delivery"),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

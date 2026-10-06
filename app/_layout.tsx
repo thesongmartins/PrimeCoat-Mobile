@@ -59,9 +59,11 @@ function RootNavigator({ ready }: { ready: boolean }) {
         <Stack.Screen name="product/[slug]" options={{ headerShown: true, title: "" }} />
         <Stack.Screen name="checkout" options={{ headerShown: true, title: "Checkout" }} />
         <Stack.Screen name="order/[id]" options={{ headerShown: true, title: "Order" }} />
+        <Stack.Screen name="payment-result" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
       </Stack.Protected>
       <Stack.Screen name="auth/callback" />
     </Stack>
