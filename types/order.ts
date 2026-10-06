@@ -19,6 +19,16 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   bank_transfer: "Bank transfer",
 };
 
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
+
+/** The successful Paystack payment for a card order (payments table, owner-only reads). */
+export interface PaymentReceipt {
+  reference: string;
+  channel: string | null;
+  paidAt: string | null;
+  amount: number;
+}
+
 export interface OrderItem {
   id: string;
   productId: string | null;
@@ -44,6 +54,9 @@ export interface Order {
   total: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  /** Present once a card payment has been verified. */
+  receipt: PaymentReceipt | null;
   confirmationEmailStatus: "pending" | "sent" | "failed";
   createdAt: string;
   items: OrderItem[];
@@ -54,6 +67,13 @@ export interface OrderSummary {
   orderNumber: string;
   total: number;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
   itemCount: number;
   createdAt: string;
+}
+
+/** A card order that still needs paying (mirrors awaitingCard on the web). */
+export function isAwaitingPayment(o: Pick<Order, "paymentMethod" | "paymentStatus" | "status">): boolean {
+  return o.paymentMethod === "card" && o.paymentStatus === "unpaid" && o.status !== "cancelled";
 }

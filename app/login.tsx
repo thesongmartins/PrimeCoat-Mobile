@@ -1,25 +1,24 @@
 import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
-import { Eye, EyeOff } from "lucide-react-native";
 import { useEmailSignIn, useGoogleSignIn } from "@/mutations/auth";
 import { AppError, toUserMessage } from "@/lib/errors";
 import { isConfigured } from "@/lib/env";
 import { colors, radii } from "@/constants/theme";
 import { Logo } from "@/components/Logo";
+import { GoogleMark } from "@/components/GoogleMark";
 import { AppText } from "@/components/ui/AppText";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { InlineError } from "@/components/ui/StatusViews";
-import { router } from "@/.expo/types/router";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -27,7 +26,6 @@ export default function LoginScreen() {
   const emailSignIn = useEmailSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const busy = google.isPending || emailSignIn.isPending;
@@ -89,35 +87,16 @@ export default function LoginScreen() {
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
             />
-            <View>
-              <TextField
-                ref={passwordRef}
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoComplete="current-password"
-                textContentType="password"
-                returnKeyType="go"
-                onSubmitEditing={() => emailSignIn.mutate({ email, password })}
-                style={{ paddingRight: 48 }}
-              />
-              <Pressable
-                onPress={() => setShowPassword((s) => !s)}
-                style={styles.eye}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showPassword ? "Hide password" : "Show password"
-                }
-              >
-                {showPassword ? (
-                  <EyeOff size={18} color={colors.mute} />
-                ) : (
-                  <Eye size={18} color={colors.mute} />
-                )}
-              </Pressable>
-            </View>
+            <PasswordField
+              ref={passwordRef}
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={() => emailSignIn.mutate({ email, password })}
+            />
             <Button
               size="lg"
               onPress={() => emailSignIn.mutate({ email, password })}
@@ -160,40 +139,18 @@ export default function LoginScreen() {
           .
         </AppText>
         <AppText variant="small" style={styles.footnote}>
-          Don't have an account?{" "}
+          Don’t have an account?{" "}
           <AppText
             variant="small"
             style={{ textDecorationLine: "underline" }}
-            // onPress={() => router.navigate("/signup")}
+            onPress={() => router.push("/signup")}
+            accessibilityRole="link"
           >
             Sign up
           </AppText>
         </AppText>
       </ScrollView>
     </KeyboardAvoidingView>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <Svg viewBox="0 0 48 48" width={18} height={18}>
-      <Path
-        fill="#EA4335"
-        d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"
-      />
-      <Path
-        fill="#4285F4"
-        d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.2z"
-      />
-      <Path
-        fill="#FBBC05"
-        d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.1z"
-      />
-      <Path
-        fill="#34A853"
-        d="M24 48c6.3 0 11.6-2.1 15.5-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.8 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"
-      />
-    </Svg>
   );
 }
 
@@ -219,6 +176,5 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   rule: { flex: 1, height: 1, backgroundColor: colors.stone },
-  eye: { position: "absolute", right: 14, bottom: 14 },
   footnote: { marginTop: 24, textAlign: "center" },
 });

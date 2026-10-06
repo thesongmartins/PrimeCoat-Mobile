@@ -11,7 +11,7 @@ export function OfflineBanner() {
   return (
     <View style={styles.bar} accessibilityRole="alert">
       <WifiOff size={14} color={colors.warmWhite} />
-      <AppText variant="small" style={styles.text}>You're offline. Showing saved data; changes will sync when you reconnect.</AppText>
+      <AppText variant="small" style={styles.text}>You’re offline. Showing saved data; changes will sync when you reconnect.</AppText>
     </View>
   );
 }
